@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.env
+jobs/*
+!jobs/.gitkeep
+data/*
+!data/.gitkeep
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+*.png
+*.pdf

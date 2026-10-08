@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SELEX DNA 文库序列分析平台</title>
+  <meta name="description" content="SELEX DNA 文库 paired-end 测序数据分析平台">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-badge">BIOINFORMATICS · SELEX</div>
+      <h1>SELEX DNA 文库序列分析平台</h1>
+      <p>Paired-end 测序 → 去接头 → FLASH 拼接 → 随机区提取 → 文库归类 → CD-HIT-EST 家族分析 → DNA Motif Logo</p>
+    </header>
+
+    <main>
+      <section class="workflow-card">
+        <div class="workflow-item active"><span>01</span><b>数据</b></div>
+        <div class="workflow-line"></div>
+        <div class="workflow-item"><span>02</span><b>参数</b></div>
+        <div class="workflow-line"></div>
+        <div class="workflow-item"><span>03</span><b>分析</b></div>
+        <div class="workflow-line"></div>
+        <div class="workflow-item"><span>04</span><b>结果</b></div>
+      </section>
+
+      <form id="analysisForm">
+        <section class="card">
+          <div class="section-head">
+            <div class="section-number">01</div>
+            <div>
+              <h2>上传测序数据</h2>
+              <p>上传同一批 paired-end 测序数据的 R1 与 R2 文件。</p>
+            </div>
+          </div>
+          <div class="upload-grid">
+            <label class="upload-box">
+              <span class="upload-title">R1 · Forward reads</span>
+              <input type="file" name="r1" accept=".fastq,.fq,.fastq.gz,.fq.gz" required>
+              <span class="file-name" data-for="r1">未选择文件</span>
+            </label>
+            <label class="upload-box">
+              <span class="upload-title">R2 · Reverse reads</span>
+              <input type="file" name="r2" accept=".fastq,.fq,.fastq.gz,.fq.gz" required>
+              <span class="file-name" data-for="r2">未选择文件</span>
+            </label>
+          </div>
+          <div class="notice">
+            <strong>数据安全：</strong>FASTQ/FASTQ.GZ 不应提交到 GitHub。网页上传的数据仅用于当前分析任务。
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="section-head">
+            <div class="section-number">02</div>
+            <div>
+              <h2>接头与随机区提取参数</h2>
+              <p>这些参数对应你现有 Python 分析程序中的 Adapter、前后引物与 random_length。</p>
+            </div>
+          </div>
+
+          <div class="field-grid two">
+            <label>
+              <span>Adapter 1</span>
+              <input name="adapter1" value="AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC" required>
+            </label>
+            <label>
+              <span>Adapter 2</span>
+              <input name="adapter2" value="AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT" required>
+            </label>
+            <label>
+              <span>前引物 · Forward primer</span>
+              <input name="extract_begin_seq" value="CTCGTGGGCTCGGAGATGTGTATAAGAGACAG" required>
+            </label>
+            <label>
+              <span>后引物 · Reverse primer</span>
+              <input name="extract_end_seq" value="GCAGCCTGGTCCCATATAAGAAA" required>
+            </label>
+          </div>
+
+          <div class="field-grid three compact">
+            <label>
+              <span>Random length</span>
+              <input type="number" name="random_length" value="35" min="1" required>
+              <small>与是否有 Tag 无关，由用户手动设定。</small>
+            </label>
+            <label>
+              <span>最大引物错配数</span>
+              <input type="number" name="max_mismatch" value="2" min="0">
+              <small>当前默认允许 2 bp mismatch。</small>
+            </label>
+            <label>
+              <span>FLASH 最大重叠长度</span>
+              <input type="number" name="flash_max_overlap" value="250" min="1">
+              <small>用于 FLASH 双端序列拼接。</small>
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="section-head">
+            <div class="section-number">03</div>
+            <div>
+              <h2>Tag / 文库识别字段</h2>
+              <p>每行输入一个 Tag。填写 Tag 后按多文库归类；留空则按无 Tag 模式处理，所有序列进入 library_1。</p>
+            </div>
+          </div>
+
+          <div class="tag-panel">
+            <div class="tag-status" id="tagStatus">
+              <span class="status-dot"></span>
+              当前：无 Tag
+            </div>
+            <textarea name="tags" id="tags" rows="6" placeholder="例如：
+CTACT
+TCTAC
+TACAG
+ACGAT"></textarea>
+            <div class="hint-row">
+              <span>支持每行一个 Tag，也支持逗号分隔。</span>
+              <span id="tagCount">0 个 Tag</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="section-head">
+            <div class="section-number">04</div>
+            <div>
+              <h2>PCR 引物与预处理</h2>
+              <p>对应现有代码中 FLASH 后可选的 PCR reverse primer 去除步骤。</p>
+            </div>
+          </div>
+
+          <div class="field-grid two">
+            <label>
+              <span>外侧 PCR reverse primer</span>
+              <input name="reverse_primer" value="CGTCGTAAGGCATGTGGAAT">
+            </label>
+            <label class="switch-field">
+              <span>FLASH 后去除 PCR primer</span>
+              <span class="switch-row">
+                <input type="checkbox" name="remove_pcr_primer" checked>
+                <b>启用</b>
+              </span>
+            </label>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="section-head">
+            <div class="section-number">05</div>
+            <div>
+              <h2>Family 与 DNA Motif 参数</h2>
+              <p>用于 counts 过滤、CD-HIT-EST 家族聚类以及 motif logo 筛选。</p>
+            </div>
+          </div>
+
+          <div class="field-grid three">
+            <label>
+              <span>CD-HIT 相似度阈值</span>
+              <input type="number" name="sim_threshold" value="0.80" min="0.5" max="1" step="0.01">
+              <small>默认 80%。</small>
+            </label>
+            <label>
+              <span>分析线程数</span>
+              <input type="number" name="threads" value="8" min="1">
+            </label>
+            <label>
+              <span>最小 counts</span>
+              <input type="number" name="min_retention_count" value="3" min="1">
+            </label>
+            <label>
+              <span>Family 成员数阈值</span>
+              <input type="number" name="member_count_thresh" value="50" min="1">
+            </label>
+            <label>
+              <span>单序列 counts 阈值</span>
+              <input type="number" name="single_seq_count_thresh" value="500" min="1">
+            </label>
+            <label>
+              <span>Motif 最小位点覆盖度</span>
+              <input type="number" name="min_col_coverage" value="0.30" min="0" max="1" step="0.05">
+            </label>
+          </div>
+        </section>
+
+        <section class="action-card">
+          <div>
+            <h2>准备完成后开始分析</h2>
+            <p>任务会在服务器后台运行。分析过程中请保持网页打开。</p>
+          </div>
+          <button id="startButton" type="submit">
+            <span>开始 SELEX 分析</span>
+            <span class="arrow">→</span>
+          </button>
+        </section>
+      </form>
+
+      <section id="result" class="card result hidden">
+        <div class="section-head">
+          <div class="section-number">06</div>
+          <div>
+            <h2>分析进度与结果</h2>
+            <p id="jobSummary">任务尚未启动</p>
+          </div>
+        </div>
+
+        <div class="progress-track">
+          <div id="progressBar" class="progress-bar"></div>
+        </div>
+        <div id="stageGrid" class="stage-grid">
+          <div class="stage" data-stage="cutadapt"><span>01</span><b>去接头</b></div>
+          <div class="stage" data-stage="flash"><span>02</span><b>FLASH 拼接</b></div>
+          <div class="stage" data-stage="extract"><span>03</span><b>序列提取</b></div>
+          <div class="stage" data-stage="family"><span>04</span><b>Family 分析</b></div>
+          <div class="stage" data-stage="motif"><span>05</span><b>DNA Motif</b></div>
+        </div>
+
+        <div class="status-banner" id="statusBanner">等待任务……</div>
+
+        <details class="log-details">
+          <summary>查看运行日志</summary>
+          <pre id="log"></pre>
+        </details>
+
+        <div id="files" class="files-panel"></div>
+      </section>
+    </main>
+
+    <footer>
+      <span>SELEX DNA Library Analysis</span>
+      <span>GitHub + Docker + Render</span>
+    </footer>
+  </div>
+  <script src="/static/script.js"></script>
+</body>
+</html>

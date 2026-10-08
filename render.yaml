@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: selex-library-analysis
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
